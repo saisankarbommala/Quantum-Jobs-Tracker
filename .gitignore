@@ -1,0 +1,14 @@
+# Ignore environment variables
+.env
+
+# Ignore Python specific files and folders
+__pycache__/
+*.pyc
+
+# Ignore Node.js dependencies
+node_modules/
+
+# Ignore project-specific files
+history.db
+
+.env.sample
