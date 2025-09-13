@@ -1,4 +1,5 @@
-const API = 'https://quantum-jobs-tracker-l3jz.onrender.com'
+const API = import.meta.env.VITE_API_URL || 'https://quantum-jobs-tracker-l3jz.onrender.com/'
+
 async function j(path) {
   const res = await fetch(`${API}${path}`)
   return res.json()
