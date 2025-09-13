@@ -3,7 +3,7 @@ import BackendCard from './components/BackendCard.jsx';
 import BusiestChart from './components/BusiestChart.jsx';
 import HistoryChart from './components/HistoryChart.jsx';
 import { getBackends, getSummary, getTop, getRecommendation } from './api.js';
-
+import Navbar from './Navbar.jsx';
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [backends, setBackends] = useState([]);
@@ -31,7 +31,6 @@ export default function Dashboard() {
     setLoading(true);
     setInitialLoad(false);
 
-    // Simulate a 4-second loading delay
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     try {
@@ -118,6 +117,57 @@ export default function Dashboard() {
     } catch (e) { alert(String(e)) }
   }
 
+  const exportCSV = () => {
+    if (!selectedBackend) {
+      alert('Select a backend first to export history data.');
+      return;
+    }
+    const rows = history || [];
+    if (!rows.length) {
+      alert('No history data to export for the selected backend.');
+      return;
+    }
+    const keys = Object.keys(rows[0]);
+    const csvContent = [
+      keys.join(','),
+      ...rows.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = selectedBackend + '-history.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('CSV file downloaded successfully!');
+  };
+
+  const exportJSON = () => {
+    const dashboardData = {
+      summary: summary,
+      backends: backends,
+      topBackends: top,
+      selectedBackendHistory: history,
+      currentBackend: selectedBackend
+    };
+    
+    const jsonContent = JSON.stringify(dashboardData, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'quantum-dashboard-data.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('JSON file downloaded successfully!');
+  };
+
   return (
     <>
       <div className="background-container">
@@ -128,7 +178,7 @@ export default function Dashboard() {
         <div className="bg-glow left-middle"></div>
         <div className="bg-glow right-middle"></div>
         <div className="particles-container">
-          {Array.from({ length: 100 }).map((_, i) => ( // Increased particle count to 100
+          {Array.from({ length: 100 }).map((_, i) => (
             <div key={i} className="particle" style={{
               left: `${Math.random() * 100}vw`,
               top: `${Math.random() * 100}vh`,
@@ -142,7 +192,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className={`dashboard-container ${!initialLoad && !loading ? 'loaded' : ''}`}>
+      <div className="dashboard-container" id="dashboard-container">
         <h1 className="main-title">QUANTUM DASHBOARD</h1>
         <div className="title-bar">
           <div className="muted subtitle">Live IBM Quantum backend queues — with history &amp; simple wait-time prediction</div>
@@ -226,18 +276,10 @@ export default function Dashboard() {
 
           <div className="card export-card">
             <div className="card-title">Export</div>
-            <div className="export-text">Export history CSV for selected backend</div>
+            <div className="export-text">Export data for the currently selected backend.</div>
             <div className="export-button-container">
-              <button className="export-btn" onClick={() => {
-                if (!selectedBackend) return alert('select backend first');
-                const rows = history || [];
-                if (!rows.length) return alert('no history');
-                const keys = Object.keys(rows[0]);
-                const csv = [keys.join(','), ...rows.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = selectedBackend + '-history.csv'; a.click(); URL.revokeObjectURL(url);
-              }}>Export CSV</button>
+              <button className="export-btn" onClick={exportCSV}>Export CSV</button>
+              <button className="export-btn" onClick={exportJSON}>Export JSON</button>
             </div>
           </div>
         </div>
@@ -283,11 +325,14 @@ export default function Dashboard() {
         }
 
         .main-title {
-          font-size: 38px;
+          font-family: 'Playfair Display', serif;
+          font-size: clamp(2rem, 5vw, 3.5rem);
           font-weight: 700;
-          margin-bottom: 8px;
+          color: var(--text-color-primary);
+         margin-bottom: 8px;
           text-align: center;
-          letter-spacing: 1px;
+          letter-spacing: 2px;
+          text-shadow: var(--neon-glow);
         }
 
         .title-bar {
@@ -487,6 +532,12 @@ export default function Dashboard() {
 
         .export-text {
             margin-bottom: 12px;
+        }
+
+        .export-button-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         /* --- Enhanced Mesmerizing Loader --- */
@@ -873,6 +924,9 @@ export default function Dashboard() {
             .history-header {
               flex-direction: column;
               align-items: flex-start;
+            }
+            .export-button-container {
+                flex-direction: column;
             }
           }
         }
