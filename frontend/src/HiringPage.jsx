@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import React, { useState, useEffect, useCallback } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { AnimatePresence, motion } from 'framer-motion';
 import Particles from 'react-tsparticles';
 import { loadFull } from 'tsparticles';
 import emailjs from 'emailjs-com';
-
+import Navbar from './Navbar.jsx';
 export default function App() {
   const [showDashboard, setShowDashboard] = useState(true);
   const [jobs, setJobs] = useState(() => {
@@ -27,15 +27,15 @@ export default function App() {
   const availableBackends = ['ibmq_qasm_simulator', 'ibmq_lima', 'ibmq_belem', 'ibmq_quito'];
 
   const statusColors = {
-    Submitted: '#00ffff', // Neon Cyan
-    'In Progress': '#ff00ff', // Neon Magenta
-    Completed: '#00ff7f', // Spring Green
-    Failed: '#ff4500', // Orange Red
+    Submitted: '#00ffff',
+    'In Progress': '#ff00ff',
+    Completed: '#00ff7f',
+    Failed: '#ff4500',
   };
 
-  const particlesInit = async (main) => {
+  const particlesInit = useCallback(async (main) => {
     await loadFull(main);
-  };
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -47,7 +47,6 @@ export default function App() {
           if (job.status === 'In Progress') {
             const random = Math.random();
             const newStatus = random > 0.5 ? 'Completed' : 'Failed';
-            // Send email for Completed or Failed status
             const templateParams = {
               jobName: job.name,
               backend: job.backend,
@@ -96,7 +95,7 @@ export default function App() {
         { name: 'Hadamard', count: Math.floor(Math.random() * 50) + 10 },
         { name: 'CNOT', count: Math.floor(Math.random() * 30) + 5 },
         { name: 'Pauli-X', count: Math.floor(Math.random() * 40) + 8 },
-        { name: 'T-Gate', count: Math.floor(Math.random() * 20) + 2 },
+        { name: 'T-Gate', count: (Math.random() * 20) + 2 },
       ];
       const newJob = {
         id: Date.now(),
@@ -152,7 +151,8 @@ export default function App() {
 
   const handleViewDetails = () => {
     setShowStatusModal(false);
-    setShowDashboard(true);
+    setShowDashboard(false);
+    setSelectedJob((prev) => ({ ...prev }));
   };
 
   const handleDownload = () => {
@@ -232,7 +232,7 @@ export default function App() {
         </div>
         <div className="job-details-grid">
           <div className="info-card">
-            <h3 className="card-title">Job Stats</h3>
+            <h3 className="card-title">Job Status</h3>
             <div className="info-grid">
               <div className="info-item">
                 <span className="info-label">Status</span>
@@ -279,7 +279,6 @@ export default function App() {
                     ))}
                   </Pie>
                   <Tooltip />
-                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -288,11 +287,53 @@ export default function App() {
             <h3 className="card-title">Gate Counts</h3>
             <div className="chart-container-lg">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={selectedJob.gateCounts} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <XAxis dataKey="name" stroke="#a8a29e" fontSize={12} />
+                <BarChart data={selectedJob.gateCounts} margin={{ top: 5, right: 30, left: 20, bottom: 5, }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#2c3445" />
+                  <XAxis dataKey="name" stroke="#a8a29e" fontSize={12} angle={-45} textAnchor="end" />
                   <YAxis stroke="#a8a29e" fontSize={12} />
-                  <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-                  <Bar dataKey="count" fill="#E6BE8A" radius={[5, 5, 0, 0]} />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                    contentStyle={{
+                      backgroundColor: 'rgba(10, 3, 17, 0.9)',
+                      border: '1px solid #00ffff',
+                      borderRadius: '8px',
+                      boxShadow: '0 0 10px rgba(0, 255, 255, 0.7)',
+                      backdropFilter: 'blur(10px)',
+                    }}
+                    itemStyle={{ color: '#00ffff' }}
+                  />
+                  <Bar
+                    dataKey="count"
+                    radius={[10, 10, 0, 0]}
+                    animationBegin={0}
+                    animationDuration={1500}
+                    animationEasing="ease-out"
+                  >
+                    {selectedJob.gateCounts.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={`url(#gradient-${entry.name.replace(/\s+/g, '')})`}
+                      />
+                    ))}
+                  </Bar>
+                  <defs>
+                    <linearGradient id="gradient-Hadamard" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#00bcd4" />
+                      <stop offset="100%" stopColor="#00838f" />
+                    </linearGradient>
+                    <linearGradient id="gradient-CNOT" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#e91e63" />
+                      <stop offset="100%" stopColor="#ad1457" />
+                    </linearGradient>
+                    <linearGradient id="gradient-Pauli-X" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#4caf50" />
+                      <stop offset="100%" stopColor="#1b5e20" />
+                    </linearGradient>
+                    <linearGradient id="gradient-T-Gate" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8a2be2" />
+                      <stop offset="100%" stopColor="#4b0082" />
+                    </linearGradient>
+                  </defs>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -382,20 +423,19 @@ export default function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;700&display=swap');
         
-        /* Enhanced Base Styles for Attractiveness */
         :root {
-            --bg-color: #0b0213;
-            --card-bg-light: rgba(18, 5, 30, 0.6);
-            --card-bg-dark: rgba(10, 3, 17, 0.8);
-            --border-color: rgba(66, 73, 90, 0.4);
-            --text-color-primary: #e0e0e0;
-            --text-color-secondary: #a8a29e;
-            --accent-color-gold: #e6be8a;
-            --accent-color-blue: #00ffff;
-            --accent-color-green: #00ff7f;
-            --accent-color-red: #ff4500;
-            --accent-color-purple: #ff00ff;
-            --neon-glow: 0 0 15px rgba(0, 255, 255, 0.7);
+          --bg-color: #0d001a;
+          --card-bg-light: rgba(18, 5, 30, 0.6);
+          --card-bg-dark: rgba(10, 3, 17, 0.8);
+          --border-color: rgba(66, 73, 90, 0.4);
+          --text-color-primary: #e0e0e0;
+          --text-color-secondary: #a8a29e;
+          --accent-color-gold: #e6be8a;
+          --accent-color-blue: #00ffff;
+          --accent-color-green: #00ff7f;
+          --accent-color-red: #ff4500;
+          --accent-color-purple: #ff00ff;
+          --neon-glow: 0 0 15px rgba(0, 255, 255, 0.7);
         }
 
         body {
@@ -407,7 +447,6 @@ export default function App() {
           color: var(--text-color-primary);
         }
 
-        /* Cyberpunk Background with Glassy Effect */
         .app-container {
           min-height: 100vh;
           position: relative;
@@ -417,7 +456,8 @@ export default function App() {
           align-items: center;
           padding: 0;
           text-align: center;
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
           z-index: 1;
         }
 
@@ -427,24 +467,19 @@ export default function App() {
           left: 0;
           width: 100%;
           height: 100%;
-          background: radial-gradient(circle at 10% 20%, rgba(20, 0, 40, 0.9) 0%, rgba(50, 0, 100, 0.9) 50%, rgba(20, 0, 40, 0.9) 100%),
-                      radial-gradient(circle at 90% 80%, rgba(0, 40, 60, 0.9) 0%, rgba(0, 70, 120, 0.9) 50%, rgba(0, 40, 60, 0.9) 100%);
-          animation: cyber-glow 15s ease infinite;
-          filter: blur(100px) saturate(200%);
+          background: #0d001a;
           z-index: 0;
-          pointer-events: none;
         }
         
         .cyber-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(20px);
-            z-index: 1;
-            pointer-events: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(15px);
+          z-index: 1;
         }
 
         #tsparticles {
@@ -456,13 +491,6 @@ export default function App() {
           z-index: 2;
         }
 
-        @keyframes cyber-glow {
-            0% { background-position: 0% 50%; opacity: 0.8; }
-            50% { background-position: 100% 50%; opacity: 1; }
-            100% { background-position: 0% 50%; opacity: 0.8; }
-        }
-
-        /* Main Content */
         .main-content-container {
           position: relative;
           z-index: 3;
@@ -470,9 +498,9 @@ export default function App() {
           max-width: 1200px;
           padding: 0 1rem;
           margin-top: 1.5rem;
+          flex-grow: 1;
         }
         
-        /* Navbar with Neon Glow */
         .top-navbar {
           display: flex;
           flex-direction: column;
@@ -502,7 +530,6 @@ export default function App() {
           text-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
         }
 
-        /* Summary Cards */
         .summary-dashboard {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -552,7 +579,6 @@ export default function App() {
           margin-top: 0.5rem;
         }
 
-        /* Form */
         .job-form {
           padding: 2rem;
           background: var(--card-bg-dark);
@@ -643,7 +669,6 @@ export default function App() {
           to { transform: rotate(360deg); }
         }
 
-        /* Jobs Table */
         .jobs-table-container {
           background: var(--card-bg-dark);
           border-radius: 1.5rem;
@@ -718,7 +743,6 @@ export default function App() {
         .status-completed { background-color: var(--accent-color-green); }
         .status-failed { background-color: var(--accent-color-red); }
 
-        /* Pop-up Message */
         .popup-message {
           position: fixed;
           top: 2rem;
@@ -734,7 +758,6 @@ export default function App() {
           backdrop-filter: blur(10px);
         }
 
-        /* Modal Overlay */
         .modal-overlay {
           position: fixed;
           top: 0;
@@ -750,7 +773,6 @@ export default function App() {
           padding: 1rem;
         }
 
-        /* Job Details Panel */
         .job-details-panel {
           background: var(--card-bg-dark);
           border-radius: 2rem;
@@ -768,6 +790,7 @@ export default function App() {
           justify-content: space-between;
           align-items: center;
           margin-bottom: 2rem;
+          flex-wrap: wrap;
         }
 
         .job-title {
@@ -786,6 +809,8 @@ export default function App() {
         .header-buttons {
           display: flex;
           gap: 1rem;
+          flex-wrap: wrap;
+          margin-top: 1rem;
         }
 
         .back-button, .close-button {
@@ -827,8 +852,12 @@ export default function App() {
 
         .job-details-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          grid-template-columns: 1fr 1fr;
           gap: 2rem;
+        }
+
+        .job-details-full-width {
+          grid-column: 1 / -1;
         }
 
         .info-card {
@@ -878,13 +907,13 @@ export default function App() {
           height: 220px;
           width: 100%;
         }
-
+        
         .chart-container-lg {
-          height: 320px;
+          height: 400px;
           width: 100%;
+          overflow-x: auto;
         }
 
-        /* Status Modal */
         .status-modal {
           background: var(--card-bg-dark);
           border-radius: 2rem;
@@ -968,59 +997,145 @@ export default function App() {
           padding: 2rem;
         }
 
-        @media (max-width: 768px) {
+        /* New Background CSS */
+        .gradient-blob {
+          position: fixed;
+          border-radius: 50%;
+          filter: blur(150px);
+          opacity: 0.6;
+          animation: blob-float 20s ease-in-out infinite alternate, blob-glow 10s ease-in-out infinite;
+          z-index: 0;
+          pointer-events: none;
+        }
+
+        .gradient-blob.one { 
+          background: #4a00e0; 
+          width: 800px; 
+          height: 800px; 
+          top: -300px; 
+          left: -300px; 
+          animation-delay: 0s; 
+        }
+        .gradient-blob.two { 
+          background: #8e2de2; 
+          width: 700px; 
+          height: 700px; 
+          bottom: -250px; 
+          right: -250px; 
+          animation-delay: 5s; 
+        }
+        .gradient-blob.three { 
+          background: #00ffff; 
+          width: 600px; 
+          height: 600px; 
+          top: 10%; 
+          right: 5%; 
+          animation-delay: 10s; 
+        }
+        .gradient-blob.four { 
+          background: #ff00ff; 
+          width: 550px; 
+          height: 550px; 
+          bottom: 5%; 
+          left: 5%; 
+          animation-delay: 15s; 
+        }
+
+        @keyframes blob-float {
+          0% {
+            transform: translate(0, 0) rotate(0deg);
+          }
+          25% {
+            transform: translate(100px, -50px) rotate(10deg);
+          }
+          50% {
+            transform: translate(50px, 100px) rotate(-10deg);
+          }
+          75% {
+            transform: translate(-100px, 50px) rotate(5deg);
+          }
+          100% {
+            transform: translate(0, 0) rotate(0deg);
+          }
+        }
+        
+        @keyframes blob-glow {
+          0% { opacity: 0.6; }
+          50% { opacity: 0.9; }
+          100% { opacity: 0.6; }
+        }
+        /* End of New Background CSS */
+
+        @media (max-width: 900px) {
           .job-details-grid {
             grid-template-columns: 1fr;
           }
+        }
+        @media (max-width: 768px) {
           .hidden-md {
             display: none;
+          }
+          .job-details-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .header-buttons {
+            margin-top: 1rem;
           }
         }
       `}</style>
       <div className="cyber-bg"></div>
       <div className="cyber-overlay"></div>
+      <div className="gradient-blob one"></div>
+      <div className="gradient-blob two"></div>
+      <div className="gradient-blob three"></div>
+      <div className="gradient-blob four"></div>
       <Particles
         id="tsparticles"
         init={particlesInit}
         options={{
           background: { color: { value: 'transparent' } },
-          fpsLimit: 60,
+          fpsLimit: 120, // Increased FPS limit for smoother movement
           particles: {
-            number: { value: 50, density: { enable: true, area: 800 } },
-            color: { 
-              value: ['#00ffff', '#ff00ff', '#00ff7f'],
-              animation: { enable: true, speed: 20, sync: false }
-            },
-            shape: { type: 'circle' },
-            opacity: { 
-              value: { min: 0.3, max: 0.7 }, 
-              random: true, 
-              anim: { enable: true, speed: 1.5, opacity_min: 0.2, sync: false }
-            },
-            size: { 
-              value: { min: 10, max: 30 }, 
-              random: true, 
-              anim: { enable: true, speed: 3, size_min: 5, sync: false }
-            },
+            number: { value: 150, density: { enable: true, area: 500 } }, // Increased particles, smaller density area for a denser feel
+            color: { value: ['#7d17b8', '#0093d9', '#d91d90', '#ffd93d', '#ff6b6b'] }, // Updated with your requested colors
+            shape: { type: 'star' },
+            opacity: { value: { min: 0.5, max: 1 }, random: true, anim: { enable: true, speed: 2, opacity_min: 0.1, sync: false } },
+            size: { value: { min: 5, max: 8 }, random: true, anim: { enable: true, speed: 5, size_min: 1, sync: false } }, // Updated with your requested sizes
             move: {
               enable: true,
-              speed: { min: 0.5, max: 1.5 },
+              speed: { min: 3, max: 7 }, // Increased movement speed
               direction: 'none',
               random: true,
               straight: false,
               out_mode: 'out',
               bounce: false,
-              wobble: { enable: true, distance: 30, speed: 0.8 },
             },
           },
           interactivity: {
             events: {
-              onHover: { enable: true, mode: 'bubble' },
-              onClick: { enable: true, mode: 'push' },
+              onHover: {
+                enable: true,
+                mode: 'repulse',
+                parallax: {
+                  enable: false,
+                  force: 60,
+                  smooth: 10,
+                },
+              },
+              onClick: {
+                enable: true,
+                mode: 'push',
+              },
             },
             modes: {
-              bubble: { distance: 250, size: 40, duration: 2, opacity: 0.9 },
-              push: { quantity: 3 },
+              repulse: {
+                distance: 100,
+                duration: 0.4,
+              },
+              push: {
+                quantity: 4,
+              },
             },
           },
           detectRetina: true,
@@ -1197,7 +1312,6 @@ export default function App() {
             className="popup-message"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-          
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
