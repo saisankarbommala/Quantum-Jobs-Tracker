@@ -4,6 +4,7 @@ import BusiestChart from './components/BusiestChart.jsx';
 import HistoryChart from './components/HistoryChart.jsx';
 import { getBackends, getSummary, getTop, getRecommendation } from './api.js';
 import Navbar from './Navbar.jsx';
+
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [backends, setBackends] = useState([]);
@@ -16,6 +17,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [randomData, setRandomData] = useState({});
+  const [isLive, setIsLive] = useState(true); // New state for on/off functionality
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   const generateRandomData = () => {
@@ -51,29 +53,36 @@ export default function Dashboard() {
   useEffect(() => {
     generateRandomData();
     refresh();
-    const url = (import.meta.env.VITE_API_URL || "http://localhost:8000") + "/api/stream";
-    const es = new EventSource(url);
-    es.onmessage = (ev) => {
-      try {
-        const d = JSON.parse(ev.data);
-        if (d.type === 'snapshot') {
-          const items = d.items || [];
-          setBackends(items);
-          const total = items.length;
-          const operational = items.filter(x => x.operational).length;
-          const sims = items.filter(x => x.is_simulator).length;
-          const total_pending = items.reduce((acc, x) => acc + (x.queue_length || 0), 0);
-          setSummary({ total_backends: total, operational_backends: operational, simulators: sims, total_pending_jobs: total_pending });
-          const busy = [...items].sort((a, b) => (b.queue_length || 0) - (a.queue_length || 0)).slice(0, 8);
-          setTop(busy);
-        } else if (d.type === 'error') {
-          console.error('stream error', d.error);
-        }
-      } catch (e) { console.error(e) }
+    let es;
+    if (isLive) {
+      const url = (import.meta.env.VITE_API_URL || "http://localhost:8000") + "/api/stream";
+      es = new EventSource(url);
+      es.onmessage = (ev) => {
+        try {
+          const d = JSON.parse(ev.data);
+          if (d.type === 'snapshot') {
+            const items = d.items || [];
+            setBackends(items);
+            const total = items.length;
+            const operational = items.filter(x => x.operational).length;
+            const sims = items.filter(x => x.is_simulator).length;
+            const total_pending = items.reduce((acc, x) => acc + (x.queue_length || 0), 0);
+            setSummary({ total_backends: total, operational_backends: operational, simulators: sims, total_pending_jobs: total_pending });
+            const busy = [...items].sort((a, b) => (b.queue_length || 0) - (a.queue_length || 0)).slice(0, 8);
+            setTop(busy);
+          } else if (d.type === 'error') {
+            console.error('stream error', d.error);
+          }
+        } catch (e) { console.error(e) }
+      };
+      es.onerror = (e) => { console.error("SSE error", e) };
+    }
+    return () => {
+      if (es) {
+        es.close();
+      }
     };
-    es.onerror = (e) => { console.error("SSE error", e) };
-    return () => es.close();
-  }, []);
+  }, [isLive]);
 
   const recommendedText = useMemo(() => {
     return async () => {
@@ -132,7 +141,7 @@ export default function Dashboard() {
       keys.join(','),
       ...rows.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))
     ].join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -153,11 +162,11 @@ export default function Dashboard() {
       selectedBackendHistory: history,
       currentBackend: selectedBackend
     };
-    
+
     const jsonContent = JSON.stringify(dashboardData, null, 2);
     const blob = new Blob([jsonContent], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    
+
     const a = document.createElement('a');
     a.href = url;
     a.download = 'quantum-dashboard-data.json';
@@ -166,6 +175,10 @@ export default function Dashboard() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     alert('JSON file downloaded successfully!');
+  };
+
+  const toggleLive = () => {
+    setIsLive(!isLive);
   };
 
   return (
@@ -196,9 +209,15 @@ export default function Dashboard() {
         <h1 className="main-title">QUANTUM DASHBOARD</h1>
         <div className="title-bar">
           <div className="muted subtitle">Live IBM Quantum backend queues — with history &amp; simple wait-time prediction</div>
-          <button onClick={refresh} disabled={loading} className="refresh-btn" value="refresh_data">
-            {loading ? 'Refreshing...' : 'Refresh Data'}
-          </button>
+          <div className="button-group">
+            <button onClick={toggleLive} className={`live-button ${isLive ? 'live-on' : 'live-off'}`}>
+              <span className="live-dot"></span>
+              <span className="live-text">{isLive ? 'LIVE' : 'PAUSED'}</span>
+            </button>
+            <button onClick={refresh} disabled={loading} className="refresh-btn" value="refresh_data">
+              {loading ? 'Refreshing...' : 'Refresh Data'}
+            </button>
+          </div>
         </div>
 
         {loading && (
@@ -329,7 +348,7 @@ export default function Dashboard() {
           font-size: clamp(2rem, 5vw, 3.5rem);
           font-weight: 700;
           color: var(--text-color-primary);
-         margin-bottom: 8px;
+          margin-bottom: 8px;
           text-align: center;
           letter-spacing: 2px;
           text-shadow: var(--neon-glow);
@@ -344,6 +363,89 @@ export default function Dashboard() {
 
         .subtitle {
           margin-bottom: 0;
+        }
+
+        .button-group {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .live-button {
+          display: flex;
+          align-items: center;
+          padding: 6px 12px;
+          border-radius: 20px;
+          border: 2px solid;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.3s ease-in-out;
+          background-color: transparent;
+        }
+
+        .live-button.live-on {
+          border-color: #ff4d4d;
+        }
+
+        .live-button.live-off {
+          border-color: #6b7280;
+        }
+
+        .live-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          margin-right: 8px;
+        }
+
+        .live-button.live-on .live-dot {
+          background-color: #ff4d4d;
+          box-shadow: 0 0 5px #ff4d4d, 0 0 10px #ff4d4d, 0 0 15px #ff4d4d;
+          animation: liveDotPulse 1.5s infinite ease-in-out;
+        }
+
+        .live-button.live-off .live-dot {
+          background-color: #6b7280;
+        }
+
+        .live-text {
+          font-size: 14px;
+        }
+
+        .live-button.live-on .live-text {
+          color: #ff4d4d;
+          animation: liveTextPulse 1.5s infinite ease-in-out;
+        }
+
+        .live-button.live-off .live-text {
+          color: #6b7280;
+        }
+
+        @keyframes liveDotPulse {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+            box-shadow: 0 0 5px #ff4d4d;
+          }
+          50% {
+            transform: scale(1.2);
+            opacity: 0.8;
+            box-shadow: 0 0 15px #ff4d4d, 0 0 20px #ff4d4d;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+            box-shadow: 0 0 5px #ff4d4d;
+          }
+        }
+
+        @keyframes liveTextPulse {
+          0%, 100% {
+            text-shadow: 0 0 5px #ff4d4d;
+          }
+          50% {
+            text-shadow: 0 0 15px #ff4d4d;
+          }
         }
 
         .refresh-btn {
@@ -435,502 +537,4 @@ export default function Dashboard() {
             width: 100%;
             padding: 10px;
             border-radius: 10px;
-            border: 1px solid #d1d5db;
-            background: #ffffff;
-            font-size: 14px;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .recommendation-card input:focus, .history-grid select:focus {
-          border-color: #3b82f6;
-          box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
-        }
-
-        .section-title {
-          font-size: 28px;
-          font-weight: 700;
-          margin-top: 36px;
-          margin-bottom: 18px;
-          text-align: center;
-          position: relative;
-        }
-
-        .section-title::after {
-          content: '';
-          position: absolute;
-          bottom: -8px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 100px;
-          height: 3px;
-          background: linear-gradient(90deg, #7d17b8, #0093d9);
-          border-radius: 2px;
-        }
-
-        .backends-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-          gap: 18px;
-        }
-
-        .backend-card-wrapper {
-          cursor: pointer;
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .backend-card-wrapper:hover {
-          transform: translateY(-5px) scale(1.03);
-          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .history-grid {
-          margin-top: 36px;
-          display: grid;
-          grid-template-columns: 1fr 350px;
-          gap: 28px;
-        }
-
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .predict-btn, .export-btn {
-          margin-left: 12px;
-          padding: 10px 20px;
-          border-radius: 10px;
-          border: none;
-          background: linear-gradient(135deg, #3b82f6, #2563eb);
-          color: white;
-          font-weight: 600;
-          cursor: pointer;
-          transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .predict-btn:hover, .export-btn:hover {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
-        }
-
-        .chart-container {
-            min-height: 260px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .chart-placeholder {
-            text-align: center;
-            padding: 20px;
-        }
-
-        .export-text {
-            margin-bottom: 12px;
-        }
-
-        .export-button-container {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        /* --- Enhanced Mesmerizing Loader --- */
-        .loading-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          background: rgba(13, 6, 21, 0.9);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          z-index: 100;
-          transition: background-color 0.3s ease;
-          backdrop-filter: blur(5px);
-        }
-
-        .loading-spinner {
-          position: relative;
-          width: 80px;
-          height: 80px;
-        }
-
-        .spinner-ring {
-          position: absolute;
-          border-radius: 50%;
-          animation: spin 2s linear infinite, glow 1.5s ease-in-out infinite alternate;
-        }
-
-        .ring1 {
-          width: 80px;
-          height: 80px;
-          border: 6px solid transparent;
-          border-top: 6px solid #42a5f5;
-          border-bottom: 6px solid #42a5f5;
-          animation-delay: 0s;
-        }
-
-        .ring2 {
-          width: 60px;
-          height: 60px;
-          top: 10px;
-          left: 10px;
-          border: 5px solid transparent;
-          border-left: 5px solid #7d17b8;
-          border-right: 5px solid #7d17b8;
-          animation-delay: 0.5s;
-          animation-direction: reverse;
-        }
-
-        .ring3 {
-          width: 40px;
-          height: 40px;
-          top: 20px;
-          left: 20px;
-          border: 4px solid transparent;
-          border-top: 4px solid #d91d90;
-          border-bottom: 4px solid #d91d90;
-          animation-delay: 1s;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        @keyframes glow {
-          0% { box-shadow: 0 0 10px rgba(66, 165, 245, 0.5); }
-          100% { box-shadow: 0 0 20px rgba(66, 165, 245, 1); }
-        }
-
-        .loading-text {
-          margin-top: 30px;
-          color: white;
-          font-size: 1.4em;
-          font-weight: 600;
-          text-shadow: 0 0 10px rgba(240, 230, 230, 0.3);
-          animation: textPulse 1s ease-in-out infinite;
-        }
-
-        .loading-subtext {
-          margin-top: 10px;
-          color: #a0a0a0;
-          font-size: 1em;
-          animation: textFade 3s ease-in-out infinite;
-        }
-
-        @keyframes textPulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-
-        @keyframes textFade {
-          0%, 100% { opacity: 0.6; }
-          50% { opacity: 1; }
-        }
-
-        .dashboard-container {
-          transition: opacity 0.5s ease;
-          opacity: ${loading ? '0.3' : '1'};
-          pointer-events: ${loading ? 'none' : 'auto'};
-        }
-
-        /* --- Dark Mode Specific Styling (Enhanced with More Glows and Animations) --- */
-        @media (prefers-color-scheme: dark) {
-          body {
-            background-color: #0d0615;
-            color: #e0e0e0;
-          }
-
-          /* Enhanced Dynamic Background Glows with more positions and color variations */
-          .bg-glow {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(180px);
-            opacity: 0.4;
-            pointer-events: none;
-            z-index: 0;
-            animation: bg-move 20s infinite alternate ease-in-out, color-shift 20s infinite linear;
-          }
-
-          .bg-glow.top-left {
-            background: #7d17b8;
-            width: 600px; height: 600px;
-            top: -200px; left: -200px;
-            animation-delay: 0s;
-          }
-
-          .bg-glow.bottom-right {
-            background: #0093d9;
-            width: 650px; height: 650px;
-            bottom: -250px; right: -250px;
-            animation-delay: 4s;
-          }
-
-          .bg-glow.center-top {
-            background: #d91d90;
-            width: 500px; height: 500px;
-            top: 0%; left: 50%;
-            animation-delay: 8s;
-          }
-
-          .bg-glow.center-bottom {
-            background: #42a5f5;
-            width: 550px; height: 550px;
-            bottom: 10%; left: 30%;
-            animation-delay: 12s;
-          }
-
-          .bg-glow.left-middle {
-            background: #ff6b6b;
-            width: 450px; height: 450px;
-            top: 40%; left: -100px;
-            animation-delay: 16s;
-          }
-
-          .bg-glow.right-middle {
-            background: #ffd93d;
-            width: 500px; height: 500px;
-            top: 60%; right: -150px;
-            animation-delay: 20s;
-          }
-
-          @keyframes bg-move {
-            0% { transform: translate(0, 0); }
-            50% { transform: translate(30px, -30px); }
-            100% { transform: translate(0, 0); }
-          }
-
-          @keyframes color-shift {
-            0% { background: #7d17b8; }
-            33% { background: #0093d9; }
-            66% { background: #d91d90; }
-            100% { background: #7d17b8; }
-          }
-
-          /* Enhanced pulse animation for stat cards with glow */
-          .stats-grid .card {
-              animation: pulse-glow 3s infinite alternate ease-in-out;
-          }
-          .stats-grid .card:nth-child(2) { animation-delay: 0.75s; }
-          .stats-grid .card:nth-child(3) { animation-delay: 1.5s; }
-          .stats-grid .card:nth-child(4) { animation-delay: 2.25s; }
-
-          @keyframes pulse-glow {
-              0% { transform: scale(1); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
-              100% { transform: scale(1.03); box-shadow: 0 8px 24px rgba(66, 165, 245, 0.3); }
-          }
-
-          .main-title {
-              color: white;
-              text-shadow: 0 0 15px rgba(255, 255, 255, 0.3), 0 0 30px rgba(66, 165, 245, 0.2);
-              animation: title-glow 5s infinite alternate;
-          }
-
-          @keyframes title-glow {
-            0% { text-shadow: 0 0 15px rgba(255, 255, 255, 0.3), 0 0 30px rgba(66, 165, 245, 0.2); }
-            100% { text-shadow: 0 0 25px rgba(255, 255, 255, 0.5), 0 0 40px rgba(66, 165, 245, 0.4); }
-          }
-
-          /* Enhanced Glassmorphism Effect for cards with Dynamic Border Glow */
-          .card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-            isolation: isolate;
-          }
-
-          .card::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, #7d17b8, #0093d9, #d91d90);
-            z-index: -1;
-            filter: blur(20px);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-          }
-
-          .card:hover::before {
-            opacity: 0.5;
-          }
-
-          .card:hover {
-              box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
-              border-color: rgba(100, 200, 255, 0.3);
-          }
-
-          .muted {
-            color: #b0b0b0;
-          }
-
-          .stat-value {
-            color: #42a5f5;
-            text-shadow: 0 0 10px rgba(66, 165, 245, 0.5);
-          }
-
-          .error-card {
-            background: rgba(239, 68, 68, 0.2);
-            border-color: #ef4444;
-            color: #fca5a5;
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
-          }
-
-          .recommendation-card input {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.15);
-            color: #e0e0e0;
-          }
-
-          /* New dropdown styling */
-          .history-grid select {
-            appearance: none; /* removes default browser styling */
-            background: linear-gradient(135deg, #7d17b8, #d91d90);
-            color: white;
-            font-weight: 600;
-            border: 2px solid transparent;
-            box-shadow: 0 4px 15px rgba(125, 23, 184, 0.4);
-            cursor: pointer;
-            transition: all 0.3s ease;
-          }
-
-          .history-grid select:hover {
-            box-shadow: 0 6px 20px rgba(125, 23, 184, 0.6);
-            transform: translateY(-2px);
-          }
-
-          .history-grid select:focus {
-            outline: none;
-            border-color: #ffd93d;
-            box-shadow: 0 0 15px #ffd93d;
-          }
-
-          .history-grid select option {
-            background-color: #0d0615;
-            color: #e0e0e0;
-          }
-
-          .predict-btn, .export-btn {
-            background: linear-gradient(135deg, #42a5f5, #2196f3);
-            box-shadow: 0 4px 15px rgba(66, 165, 245, 0.4);
-          }
-
-          .predict-btn:hover, .export-btn:hover {
-            background: linear-gradient(135deg, #2196f3, #1d4ed8);
-            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.6);
-            transform: translateY(-2px);
-          }
-
-          /* New particles styling and animation */
-          .particles-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            overflow: hidden;
-            z-index: 1;
-          }
-
-          .particle {
-            position: absolute;
-            border-radius: 50%;
-            opacity: 0;
-            animation: particle-move linear infinite;
-          }
-
-          @keyframes particle-move {
-            0% {
-              transform: translate(0, 0) scale(0);
-              opacity: 0;
-            }
-            10% {
-              opacity: 0.8;
-              transform: scale(var(--s-start, 1));
-            }
-            100% {
-              opacity: 0;
-              transform: translate(var(--x-end), var(--y-end)) scale(var(--s-end, 0));
-            }
-          }
-
-          /* Define particle sizes and colors for a vibrant mix */
-          .particle:nth-child(5n) { background: #7d17b8; width: 6px; height: 6px; } /* Medium Purple */
-          .particle:nth-child(5n+1) { background: #0093d9; width: 8px; height: 8px; } /* Medium Blue */
-          .particle:nth-child(5n+2) { background: #d91d90; width: 5px; height: 5px; } /* Medium Pink */
-          .particle:nth-child(5n+3) { background: #ffd93d; width: 7px; height: 7px; } /* Medium Yellow */
-          .particle:nth-child(5n+4) { background: #ff6b6b; width: 7px; height: 7px; } /* Medium Red */
-
-          /* Adjustments for responsiveness on smaller screens */
-          @media (min-width: 1600px) {
-            .dashboard-container {
-              max-width: 1800px;
-              padding: 40px;
-            }
-          }
-
-          @media (max-width: 1024px) {
-            .main-grid {
-              grid-template-columns: 1fr;
-            }
-            .history-grid {
-              grid-template-columns: 1fr;
-            }
-            .dashboard-container {
-              padding: 24px;
-            }
-          }
-
-          @media (max-width: 768px) {
-            .stats-grid {
-              grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            }
-            .backends-grid {
-              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            }
-            .main-title {
-              font-size: 32px;
-            }
-            .section-title {
-              font-size: 24px;
-            }
-          }
-          @media (max-width: 480px) {
-            .main-title {
-              font-size: 28px;
-            }
-            .subtitle {
-              font-size: 14px;
-            }
-            .predict-btn, .export-btn {
-              margin-left: 0;
-              margin-top: 10px;
-              width: 100%;
-            }
-            .history-header {
-              flex-direction: column;
-              align-items: flex-start;
-            }
-            .export-button-container {
-                flex-direction: column;
-            }
-          }
-        }
-      `}</style>
-    </>
-  );
-}
+            border: 1px so
