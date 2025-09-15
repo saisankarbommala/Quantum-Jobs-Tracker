@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Particles from 'react-tsparticles';
 import { loadFull } from 'tsparticles';
 import emailjs from 'emailjs-com';
-import Navbar from './Navbar.jsx';
+
 export default function App() {
   const [showDashboard, setShowDashboard] = useState(true);
   const [jobs, setJobs] = useState(() => {
@@ -21,8 +21,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
-  const [showPopup, setShowPopup] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [notification, setNotification] = useState(null);
 
   const availableBackends = ['ibmq_qasm_simulator', 'ibmq_lima', 'ibmq_belem', 'ibmq_quito'];
 
@@ -68,6 +68,22 @@ export default function App() {
               .catch((err) => {
                 console.error(`❌ Failed to send status update email for ${newStatus}:`, err);
               });
+
+            // Set notification based on new status
+            if (newStatus === 'Completed') {
+              setNotification({
+                type: 'success',
+                message: `Job "${job.name}" has succeeded!`,
+              });
+            } else if (newStatus === 'Failed') {
+              setNotification({
+                type: 'error',
+                message: `Job "${job.name}" has failed. Consider using a different backend.`,
+              });
+            }
+            // Clear notification after 5 seconds
+            setTimeout(() => setNotification(null), 5000);
+
             return { ...job, status: newStatus };
           }
           return job;
@@ -84,8 +100,11 @@ export default function App() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!jobName || !backend) {
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 3000);
+      setNotification({
+        type: 'error',
+        message: 'Please fill in all fields!',
+      });
+      setTimeout(() => setNotification(null), 3000);
       return;
     }
     setLoading(true);
@@ -287,7 +306,7 @@ export default function App() {
             <h3 className="card-title">Gate Counts</h3>
             <div className="chart-container-lg">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={selectedJob.gateCounts} margin={{ top: 5, right: 30, left: 20, bottom: 5, }}>
+                <BarChart data={selectedJob.gateCounts} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#2c3445" />
                   <XAxis dataKey="name" stroke="#a8a29e" fontSize={12} angle={-45} textAnchor="end" />
                   <YAxis stroke="#a8a29e" fontSize={12} />
@@ -348,7 +367,7 @@ export default function App() {
     const isCompleted = selectedJob.status === 'Completed';
     const message = isCompleted
       ? "Job has been successfully completed."
-      : "Job execution has failed. Review the logs for details.";
+      : "Job execution has failed. Review the logs for details or try a different backend.";
 
     return (
       <motion.div
@@ -397,6 +416,21 @@ export default function App() {
             Delete
           </motion.button>
         </div>
+      </motion.div>
+    );
+  };
+
+  const renderNotification = () => {
+    if (!notification) return null;
+    return (
+      <motion.div
+        className={`notification ${notification.type === 'success' ? 'notification-success' : 'notification-error'}`}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.3 }}
+      >
+        {notification.message}
       </motion.div>
     );
   };
@@ -738,24 +772,27 @@ export default function App() {
           box-shadow: var(--neon-glow);
         }
         
-        .status-submitted { background-color: var(--accent-color-purple); }
-        .status-in-progress { background-color: var(--accent-color-gold); }
-        .status-completed { background-color: var(--accent-color-green); }
-        .status-failed { background-color: var(--accent-color-red); }
-
-        .popup-message {
+        .notification {
           position: fixed;
-          top: 2rem;
+          bottom: 2rem;
           left: 50%;
           transform: translateX(-50%);
           padding: 0.75rem 1.5rem;
-          background: var(--accent-color-red);
-          color: var(--text-color-primary);
           border-radius: 0.5rem;
-          box-shadow: 0 0 10px rgba(255, 69, 0, 0.5);
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
           z-index: 100;
           font-size: 0.875rem;
           backdrop-filter: blur(10px);
+          font-family: 'Montserrat', sans-serif;
+          color: var(--text-color-primary);
+        }
+
+        .notification-success {
+          background: var(--accent-color-green);
+        }
+
+        .notification-error {
+          background: var(--accent-color-red);
         }
 
         .modal-overlay {
@@ -997,7 +1034,6 @@ export default function App() {
           padding: 2rem;
         }
 
-        /* New Background CSS */
         .gradient-blob {
           position: fixed;
           border-radius: 50%;
@@ -1064,7 +1100,6 @@ export default function App() {
           50% { opacity: 0.9; }
           100% { opacity: 0.6; }
         }
-        /* End of New Background CSS */
 
         @media (max-width: 900px) {
           .job-details-grid {
@@ -1095,16 +1130,16 @@ export default function App() {
         init={particlesInit}
         options={{
           background: { color: { value: 'transparent' } },
-          fpsLimit: 120, // Increased FPS limit for smoother movement
+          fpsLimit: 120,
           particles: {
-            number: { value: 150, density: { enable: true, area: 500 } }, // Increased particles, smaller density area for a denser feel
-            color: { value: ['#7d17b8', '#0093d9', '#d91d90', '#ffd93d', '#ff6b6b'] }, // Updated with your requested colors
+            number: { value: 150, density: { enable: true, area: 500 } },
+            color: { value: ['#7d17b8', '#0093d9', '#d91d90', '#ffd93d', '#ff6b6b'] },
             shape: { type: 'star' },
             opacity: { value: { min: 0.5, max: 1 }, random: true, anim: { enable: true, speed: 2, opacity_min: 0.1, sync: false } },
-            size: { value: { min: 5, max: 8 }, random: true, anim: { enable: true, speed: 5, size_min: 1, sync: false } }, // Updated with your requested sizes
+            size: { value: { min: 5, max: 8 }, random: true, anim: { enable: true, speed: 5, size_min: 1, sync: false } },
             move: {
               enable: true,
-              speed: { min: 3, max: 7 }, // Increased movement speed
+              speed: { min: 3, max: 7 },
               direction: 'none',
               random: true,
               straight: false,
@@ -1307,15 +1342,15 @@ export default function App() {
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {showPopup && (
+        {notification && (
           <motion.div
-            className="popup-message"
-            initial={{ opacity: 0, y: -20 }}
+            className={`notification ${notification.type === 'success' ? 'notification-success' : 'notification-error'}`}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.3 }}
           >
-            Please fill in all fields!
+            {notification.message}
           </motion.div>
         )}
       </AnimatePresence>
