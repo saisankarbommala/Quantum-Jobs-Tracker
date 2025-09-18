@@ -69,7 +69,6 @@ export default function App() {
                 console.error(`❌ Failed to send status update email for ${newStatus}:`, err);
               });
 
-            // Set notification based on new status
             if (newStatus === 'Completed') {
               setNotification({
                 type: 'success',
@@ -81,7 +80,6 @@ export default function App() {
                 message: `Job "${job.name}" has failed. Consider using a different backend.`,
               });
             }
-            // Clear notification after 5 seconds
             setTimeout(() => setNotification(null), 5000);
 
             return { ...job, status: newStatus };
@@ -808,6 +806,7 @@ export default function App() {
           justify-content: center;
           align-items: center;
           padding: 1rem;
+          overflow-y: auto; /* Allow scrolling for modal content */
         }
 
         .job-details-panel {
@@ -820,6 +819,7 @@ export default function App() {
           width: 100%;
           position: relative;
           backdrop-filter: blur(35px);
+          max-height: 90vh; /* Set a maximum height to enable scrolling */
         }
 
         .job-details-header {
