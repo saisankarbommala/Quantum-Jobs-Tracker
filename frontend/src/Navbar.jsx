@@ -126,12 +126,12 @@ export default function Navbar() {
           .navbar__links {
             flex-direction: column;
             width: 50%;
-            max-width: 220px;
+            max-width: 180px; /* Reduced box size */
             text-align: center;
             position: absolute;
             top: 100%;
             right: 0;
-            padding: 1rem 0;
+            padding: 0.5rem 0; /* Reduced padding */
             border-top: none;
             transform: translateY(-100%) scaleY(0);
             transform-origin: top;
@@ -140,7 +140,7 @@ export default function Navbar() {
             transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
             
             /* Modern Glassmorphism */
-            background: transparent; /* Absolutely no background color */
+            background: transparent;
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             border-radius: 0 0 15px 15px;
@@ -160,14 +160,14 @@ export default function Navbar() {
           }
           
           .navbar__links li {
-            padding: 0.5rem 0;
+            padding: 0.2rem 0; /* Reduced spacing between list items */
           }
 
           .navbar__link {
             display: block;
             width: 80%;
-            margin: 0 auto;
-            padding: 0.8rem 1rem;
+            margin: 0.4rem auto; /* Adjusted margin for better centering */
+            padding: 0.6rem 1rem;
             color: #fff;
             
             /* Glassy Buttons */
