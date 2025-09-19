@@ -40,7 +40,7 @@ export default function BusiestChart({ data }) {
           <YAxis stroke="#fff" />
           <Tooltip content={<CustomTooltip />} />
           <Legend wrapperStyle={{ color: '#fff', fontSize: '14px', paddingTop: '10px' }} />
-          <Bar dataKey="queue" fill="#4B0082" />
+          <Bar dataKey="queue" fill="#Ddb092" />
         </BarChart>
       </ResponsiveContainer>
     </div>
