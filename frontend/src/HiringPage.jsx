@@ -29,7 +29,7 @@ export default function App() {
   const statusColors = {
     Submitted: '#00ffff',
     'In Progress': '#ff00ff',
-    Completed: '#00ff7f',
+    Completed: '#0084ffff',
     Failed: '#ff4500',
   };
 
@@ -623,9 +623,9 @@ export default function App() {
 
         .form-title {
           font-family: 'Playfair Display', serif;
-          font-size: 1.5rem;
-          font-weight: 500;
-          color: var(--text-color-primary);
+          font-size: 2rem;
+          font-weight: 700;
+          color: cyan;
           margin-bottom: 1.5rem;
           text-shadow: var(--neon-glow);
         }
@@ -713,10 +713,10 @@ export default function App() {
 
         .jobs-table-title {
           font-family: 'Playfair Display', serif;
-          font-size: 1.5rem;
-          font-weight: 500;
+          font-size: 4 rem;
+          font-weight: 700;
           padding: 1.5rem;
-          color: var(--text-color-primary);
+          color: cyan;
           background: rgba(30, 35, 50, 0.5);
           border-bottom: 1px solid var(--border-color);
           text-shadow: var(--neon-glow);
@@ -811,15 +811,12 @@ export default function App() {
 
         .job-details-panel {
           background: var(--card-bg-dark);
-          border-radius: 2rem;
+          border-radius: 1.5rem;
           border: 1px solid var(--border-color);
           box-shadow: 0 0 50px rgba(0, 0, 0, 0.6);
-          padding: 3rem;
-          max-width: 1000px;
+          padding: 2rem;
           width: 100%;
-          position: relative;
           backdrop-filter: blur(35px);
-          max-height: 90vh; /* Set a maximum height to enable scrolling */
         }
 
         .job-details-header {
@@ -863,7 +860,7 @@ export default function App() {
         }
 
         .back-button {
-          background: var(--accent-color-blue);
+          background: darkblue;
           color: var(--text-color-primary);
           box-shadow: var(--neon-glow);
         }
@@ -941,7 +938,7 @@ export default function App() {
         }
 
         .chart-container {
-          height: 220px;
+          height: 250px;
           width: 100%;
         }
         
@@ -1314,20 +1311,20 @@ export default function App() {
             </motion.div>
           ) : null}
         </AnimatePresence>
+        <AnimatePresence mode="wait">
+          {!showDashboard && selectedJob && !showStatusModal && (
+            <motion.div
+              key="details"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+            >
+              {renderJobDetails()}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-      <AnimatePresence>
-        {selectedJob && !showStatusModal && (
-          <motion.div
-            className="modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            {renderJobDetails()}
-          </motion.div>
-        )}
-      </AnimatePresence>
       <AnimatePresence>
         {showStatusModal && selectedJob && (
           <motion.div
@@ -1342,17 +1339,7 @@ export default function App() {
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {notification && (
-          <motion.div
-            className={`notification ${notification.type === 'success' ? 'notification-success' : 'notification-error'}`}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {notification.message}
-          </motion.div>
-        )}
+        {notification && renderNotification()}
       </AnimatePresence>
     </div>
   );
