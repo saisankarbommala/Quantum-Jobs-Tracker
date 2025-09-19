@@ -184,24 +184,28 @@ export default function Dashboard() {
   return (
     <>
       <div className="background-container">
-        <div className="bg-glow top-left"></div>
-        <div className="bg-glow bottom-right"></div>
-        <div className="bg-glow center-top"></div>
-        <div className="bg-glow center-bottom"></div>
-        <div className="bg-glow left-middle"></div>
-        <div className="bg-glow right-middle"></div>
-        <div className="particles-container">
-          {Array.from({ length: 100 }).map((_, i) => (
-            <div key={i} className="particle" style={{
-              left: `${Math.random() * 100}vw`,
-              top: `${Math.random() * 100}vh`,
-              animationDuration: `${Math.random() * 10 + 5}s`,
-              animationDelay: `-${Math.random() * 10}s`,
-              '--x-end': `${(Math.random() * 200 - 100)}vw`,
-              '--y-end': `${(Math.random() * 200 - 100)}vh`,
-              '--s-end': `${Math.random() * 1.5 + 0.5}`,
-            }}></div>
-          ))}
+        <div className="bg-overlay" style={{
+          background: 'linear-gradient(135deg, rgba(25, 5, 45, 0.9), rgba(10, 0, 20, 0.95)), radial-gradient(circle at center, rgba(125, 23, 184, 0.2), rgba(0, 147, 217, 0.1))',
+        }}>
+          <div className="particles-container">
+            {Array.from({ length: 100 }).map((_, i) => (
+              <div key={i} className="particle" style={{
+                left: `${Math.random() * 100}vw`,
+                top: `${Math.random() * 100}vh`,
+                animationDuration: `${Math.random() * 10 + 5}s`,
+                animationDelay: `-${Math.random() * 10}s`,
+                '--x-end': `${(Math.random() * 200 - 100)}vw`,
+                '--y-end': `${(Math.random() * 200 - 100)}vh`,
+                '--s-end': `${Math.random() * 1.5 + 0.5}`,
+              }}></div>
+            ))}
+          </div>
+          <div className="bg-glow top-left"></div>
+          <div className="bg-glow bottom-right"></div>
+          <div className="bg-glow center-top"></div>
+          <div className="bg-glow center-bottom"></div>
+          <div className="bg-glow left-middle"></div>
+          <div className="bg-glow right-middle"></div>
         </div>
       </div>
 
@@ -324,7 +328,17 @@ export default function Dashboard() {
           height: 100vh;
           z-index: -1;
           overflow: hidden;
-          background: radial-gradient(circle at center, rgba(13, 6, 21, 0.8), rgba(0, 0, 0, 1));
+        }
+
+        .bg-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 0;
+          background-size: cover;
+          background-position: center;
         }
 
         .dashboard-container {
@@ -348,7 +362,7 @@ export default function Dashboard() {
           font-size: clamp(2rem, 5vw, 3.5rem);
           font-weight: 700;
           color: var(--text-color-primary);
-          margin-bottom: 8px;
+          margin: 0 ;
           text-align: center;
           letter-spacing: 2px;
           text-shadow: var(--neon-glow);
@@ -362,7 +376,7 @@ export default function Dashboard() {
         }
 
         .subtitle {
-          margin-bottom: 0;
+          margin-bottom: 3 px;
         }
 
         .button-group {
@@ -388,7 +402,7 @@ export default function Dashboard() {
         }
 
         .live-button.live-off {
-          border-color: #6b7280;
+          border-color: #ffffff;
         }
 
         .live-dot {
@@ -405,7 +419,7 @@ export default function Dashboard() {
         }
 
         .live-button.live-off .live-dot {
-          background-color: #6b7280;
+          background-color: #ffffff;
         }
 
         .live-text {
@@ -452,7 +466,7 @@ export default function Dashboard() {
           padding: 8px 16px;
           border-radius: 8px;
           border: none;
-          background: linear-gradient(135deg, #3b82f6, #2563eb);
+          background: linear-gradient(135deg, #3b82f6, #5deb25ff);
           color: white;
           font-weight: 600;
           cursor: pointer;
@@ -506,7 +520,7 @@ export default function Dashboard() {
         }
 
         .stat-card:hover .stat-value {
-          color: #2563eb;
+          color: #25e8ebff;
           transform: scale(1.05);
         }
 
@@ -530,12 +544,12 @@ export default function Dashboard() {
 
         .recommendation-card label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 7px;
         }
 
         .recommendation-card input, .history-grid select {
             width: 100%;
-            padding: 10px;
+            padding:6px;
             border-radius: 10px;
             border: 1px solid #d1d5db;
             background: #ffffff;
@@ -649,14 +663,14 @@ export default function Dashboard() {
           left: 0;
           width: 100vw;
           height: 100vh;
-          background: rgba(13, 6, 21, 0.9);
+          background: rgba(26, 19, 32, 0.9);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           z-index: 100;
           transition: background-color 0.3s ease;
-          backdrop-filter: blur(5px);
+          backdrop-filter: blur(10px);
         }
 
         .loading-spinner {
@@ -675,7 +689,7 @@ export default function Dashboard() {
           width: 80px;
           height: 80px;
           border: 6px solid transparent;
-          border-top: 6px solid #42a5f5;
+          border-top: 8px solid #42a5f5;
           border-bottom: 6px solid #42a5f5;
           animation-delay: 0s;
         }
@@ -710,7 +724,7 @@ export default function Dashboard() {
 
         @keyframes glow {
           0% { box-shadow: 0 0 10px rgba(66, 165, 245, 0.5); }
-          100% { box-shadow: 0 0 20px rgba(66, 165, 245, 1); }
+          100% { box-shadow: 0 0 20px rgba(66, 165, 245, 0.5); }
         }
 
         .loading-text {
@@ -718,13 +732,13 @@ export default function Dashboard() {
           color: white;
           font-size: 1.4em;
           font-weight: 600;
-          text-shadow: 0 0 10px rgba(240, 230, 230, 0.3);
+          text-shadow: 0 0 10px rgba(240, 230, 230, 1);
           animation: textPulse 1s ease-in-out infinite;
         }
 
         .loading-subtext {
           margin-top: 10px;
-          color: #a0a0a0;
+          color: #FFFFFF;
           font-size: 1em;
           animation: textFade 3s ease-in-out infinite;
         }
@@ -749,7 +763,7 @@ export default function Dashboard() {
         @media (prefers-color-scheme: dark) {
           body {
             background-color: #0d0615;
-            color: #e0e0e0;
+            color: #FFFFFF;
           }
 
           /* Enhanced Dynamic Background Glows with more positions and color variations */
@@ -763,47 +777,7 @@ export default function Dashboard() {
             animation: bg-move 20s infinite alternate ease-in-out, color-shift 20s infinite linear;
           }
 
-          .bg-glow.top-left {
-            background: #7d17b8;
-            width: 600px; height: 600px;
-            top: -200px; left: -200px;
-            animation-delay: 0s;
-          }
-
-          .bg-glow.bottom-right {
-            background: #0093d9;
-            width: 650px; height: 650px;
-            bottom: -250px; right: -250px;
-            animation-delay: 4s;
-          }
-
-          .bg-glow.center-top {
-            background: #d91d90;
-            width: 500px; height: 500px;
-            top: 0%; left: 50%;
-            animation-delay: 8s;
-          }
-
-          .bg-glow.center-bottom {
-            background: #42a5f5;
-            width: 550px; height: 550px;
-            bottom: 10%; left: 30%;
-            animation-delay: 12s;
-          }
-
-          .bg-glow.left-middle {
-            background: #ff6b6b;
-            width: 450px; height: 450px;
-            top: 40%; left: -100px;
-            animation-delay: 16s;
-          }
-
-          .bg-glow.right-middle {
-            background: #ffd93d;
-            width: 500px; height: 500px;
-            top: 60%; right: -150px;
-            animation-delay: 20s;
-          }
+        
 
           @keyframes bg-move {
             0% { transform: translate(0, 0); }
