@@ -71,11 +71,7 @@ export default function Home() {
       <div className="background-3d"></div>
 
       {/* Floating gradient blobs */}
-      <div className="gradient-blob one"></div>
-      
-      <div className="gradient-blob three"></div>
-      
-
+     
       {/* Qubit particles layer (replacing old particle-layer) */}
       <div className="qubit-particles" ref={particleContainer}></div>
 
@@ -320,11 +316,11 @@ export default function Home() {
         /* Hero */
         .hero { text-align: center; position: relative; z-index: 4; padding-top: 50px; }
         .title {
-          font-size: clamp(52px, 9vw, 80px);
+          font-size: clamp(60px, 10vw, 90px);
           font-weight: 700;
           letter-spacing: -0.04em;
           margin: 0 0 12px;
-          animation: fadeDown 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+          animation: glow-text 2s ease-in-out infinite alternate;
         }
         .accent { 
           background: linear-gradient(90deg, var(--c1), var(--c2), var(--c3), var(--c4), var(--c5));
