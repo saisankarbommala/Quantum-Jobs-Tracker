@@ -25,7 +25,7 @@ class BackendStatus:
         return asdict(self)
 
 class IBMQuantumClient:
-    def _init_(self, cache_ttl: int = 30) -> None:
+    def __init__(self, cache_ttl: int = 30) -> None:  # Fixed constructor
         token = os.getenv("IBM_QUANTUM_API_TOKEN")
         instance = os.getenv("IBM_QUANTUM_INSTANCE") or None
         if not token:
@@ -86,7 +86,8 @@ class IBMQuantumClient:
         candidates = [s for s in statuses if (s.operational is True) and (s.num_qubits or 0) >= min_qubits]
         if max_queue is not None:
             candidates = [s for s in candidates if s.queue_length is not None and s.queue_length <= max_queue]
-        def score_backend(s):
+
+        def score_backend(s: BackendStatus) -> int:
             score = 0
             if s.operational: score += 1000
             if not s.is_simulator: score += 500
@@ -94,6 +95,7 @@ class IBMQuantumClient:
             score -= q * 20
             score += (s.num_qubits or 0) * 5
             return score
+
         candidates.sort(key=lambda x: score_backend(x), reverse=True)
         return (True, (candidates[0] if candidates else None), None)
 
