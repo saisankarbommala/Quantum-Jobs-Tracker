@@ -18,7 +18,7 @@ export default function Dashboard() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [randomData, setRandomData] = useState({});
   const [isLive, setIsLive] = useState(true); // New state for on/off functionality
-  const API_BASE = import.meta.env.VITE_API_URL || 'https://quantum-jobs-tracker-l3jz.onrender.com/';
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   const generateRandomData = () => {
     setRandomData({
@@ -55,7 +55,7 @@ export default function Dashboard() {
     refresh();
     let es;
     if (isLive) {
-      const url = (import.meta.env.VITE_API_URL || "https://quantum-jobs-tracker-l3jz.onrender.com/") + "/api/stream";
+      const url = (import.meta.env.VITE_API_URL || "http://localhost:8000") + "/api/stream";
       es = new EventSource(url);
       es.onmessage = (ev) => {
         try {
