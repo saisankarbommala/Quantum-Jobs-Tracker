@@ -26,19 +26,45 @@ class BackendStatus:
 
 class IBMQuantumClient:
     def __init__(self, cache_ttl: int = 30) -> None:
-        token = os.getenv("IBM_QUANTUM_API_TOKEN")
+        # ✅ Load credentials safely
+        token = (
+            os.getenv("IBM_QUANTUM_API_TOKEN")
+            or os.getenv("IBM_QUANTUM_TOKEN")
+            or None
+        )
         instance = os.getenv("IBM_QUANTUM_INSTANCE") or None
-        if not token:
-            raise RuntimeError("Missing IBM_QUANTUM_API_TOKEN in environment")
-        self._service = QiskitRuntimeService(channel="ibm_quantum_platform", token=token, instance=instance)
+
         self._ttl = int(os.getenv("CACHE_TTL", str(cache_ttl)))
         self._cache_time: float = 0.0
         self._cache_statuses: List[BackendStatus] = []
         self._err: Optional[str] = None
 
+        # ✅ Try connecting to Qiskit Runtime Service safely
+        self._service = None
+        if token:
+            try:
+                self._service = QiskitRuntimeService(
+                    channel="ibm_quantum_platform",
+                    token=token,
+                    instance=instance,
+                )
+                print("✅ IBM Quantum service initialized successfully.")
+            except Exception as e:
+                self._err = f"Qiskit init failed: {e}"
+                print(f"⚠️ Warning: {self._err}")
+        else:
+            self._err = "Missing IBM_QUANTUM_API_TOKEN or IBM_QUANTUM_TOKEN"
+            print(f"⚠️ Warning: {self._err}")
+
+    # ------------------ Core Methods ------------------
+
     def _refresh(self) -> None:
+        if not self._service:
+            raise RuntimeError("IBM Quantum service not initialized.")
+
         results: List[BackendStatus] = []
         backends: List[IBMBackend] = list(self._service.backends())
+
         for be in backends:
             try:
                 st = be.status()
@@ -70,6 +96,8 @@ class IBMQuantumClient:
         self._cache_time = time.time()
 
     def get_statuses(self, force: bool = False) -> Tuple[bool, List[BackendStatus], Optional[str]]:
+        if not self._service:
+            return False, [], self._err or "IBM Quantum client not available."
         now = time.time()
         if force or (now - self._cache_time > self._ttl) or not self._cache_statuses:
             try:
@@ -101,7 +129,11 @@ class IBMQuantumClient:
         ok, statuses, err = self.get_statuses()
         if not ok:
             return False, [], err
-        busiest = sorted([s for s in statuses if s.queue_length is not None], key=lambda s: s.queue_length, reverse=True)[:n]
+        busiest = sorted(
+            [s for s in statuses if s.queue_length is not None],
+            key=lambda s: s.queue_length,
+            reverse=True,
+        )[:n]
         return True, busiest, None
 
     def summary(self) -> Tuple[bool, Dict, Optional[str]]:
@@ -112,7 +144,11 @@ class IBMQuantumClient:
         operational = sum(1 for s in statuses if s.operational)
         sims = sum(1 for s in statuses if s.is_simulator)
         total_queue = sum(s.queue_length or 0 for s in statuses if s.queue_length is not None)
-        busiest = sorted([s for s in statuses if s.queue_length is not None], key=lambda s: s.queue_length, reverse=True)[:5]
+        busiest = sorted(
+            [s for s in statuses if s.queue_length is not None],
+            key=lambda s: s.queue_length,
+            reverse=True,
+        )[:5]
         return True, {
             "total_backends": total,
             "operational_backends": operational,
