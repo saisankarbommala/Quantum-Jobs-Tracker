@@ -1,15 +1,14 @@
-from _future_ import annotations
-
+from __future__ import annotations
 import os
 import time
 from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional, Tuple
-
 from dotenv import load_dotenv
 from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit_ibm_runtime.ibm_backend import IBMBackend
 
 load_dotenv()
+
 
 @dataclass
 class BackendStatus:
@@ -24,13 +23,25 @@ class BackendStatus:
     def to_dict(self) -> Dict:
         return asdict(self)
 
+
 class IBMQuantumClient:
-    def _init_(self, cache_ttl: int = 30) -> None:
-        token = os.getenv("IBM_QUANTUM_API_TOKEN")
-        instance = os.getenv("IBM_QUANTUM_INSTANCE") or None
+    def __init__(self, cache_ttl: int = 30) -> None:
+        """Initialize IBM Quantum client."""
+        token = os.getenv("IBM_QUANTUM_API_TOKEN") or os.getenv("IBM_QUANTUM_TOKEN")
+        instance = os.getenv("IBM_QUANTUM_INSTANCE")
+
         if not token:
-            raise RuntimeError("Missing IBM_QUANTUM_API_TOKEN in environment")
-        self._service = QiskitRuntimeService(channel="ibm_quantum_platform", token=token, instance=instance)
+            raise RuntimeError("❌ Missing IBM_QUANTUM_API_TOKEN in environment")
+
+        try:
+            self._service = QiskitRuntimeService(
+                channel="ibm_quantum",
+                token=token,
+                instance=instance or None,
+            )
+        except Exception as e:
+            raise RuntimeError(f"Qiskit init failed: {e}")
+
         self._ttl = int(os.getenv("CACHE_TTL", str(cache_ttl)))
         self._cache_time: float = 0.0
         self._cache_statuses: List[BackendStatus] = []
@@ -86,6 +97,7 @@ class IBMQuantumClient:
         candidates = [s for s in statuses if (s.operational is True) and (s.num_qubits or 0) >= min_qubits]
         if max_queue is not None:
             candidates = [s for s in candidates if s.queue_length is not None and s.queue_length <= max_queue]
+
         def score_backend(s):
             score = 0
             if s.operational: score += 1000
@@ -94,6 +106,7 @@ class IBMQuantumClient:
             score -= q * 20
             score += (s.num_qubits or 0) * 5
             return score
+
         candidates.sort(key=lambda x: score_backend(x), reverse=True)
         return (True, (candidates[0] if candidates else None), None)
 
