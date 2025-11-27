@@ -77,3 +77,27 @@ def predict_wait(backend_name: str):
     med = sorted(qlens)[len(qlens)//2]
     est_seconds = med * 120  # heuristic: 2 minutes per job
     return {"ok": True, "estimate_seconds": est_seconds, "median_queue_length": med}
+
+@app.get("/api/backends/{backend_name}/details")
+def backend_details(backend_name: str):
+    """
+    Full config + status + calibration of a single backend.
+    Used for the 'Details' tab in your frontend.
+    """
+    ok, data, err = get_client().get_backend_details(backend_name)
+    return {"ok": ok, "data": data, "error": err}
+
+
+@app.get("/api/backends/{backend_name}/analytics")
+def backend_analytics(
+    backend_name: str,
+    history_limit: int = Query(300, ge=20, le=2000),
+):
+    """
+    Analytics view combining calibrations (T1/T2/error) and queue history.
+    Used for the 'Analytics' tab in your frontend.
+    """
+    # Get history from SQLite
+    history_rows = query_history(backend_name, limit=history_limit)
+    ok, data, err = get_client().get_backend_analytics(backend_name, history_rows)
+    return {"ok": ok, "data": data, "error": err}
